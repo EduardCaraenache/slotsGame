@@ -1,37 +1,29 @@
 import { Container, Sprite } from 'pixi.js';
 import { AssetsManager } from '../managers/AssetsManager';
+import { SLOT_CONFIG } from '../config/Constants';
 
 export class SymbolView extends Container {
     public symbolId: number = 0;
+    private sprite: Sprite | null = null;
 
-    constructor(symbolId: number) {
+    constructor(id: number) {
         super();
-        this.render(symbolId);
+        this.render(id);
     }
 
     public render(id: number): void {
         this.symbolId = id;
         this.removeChildren();
-        const names = [
-            'alhamlawi',
-            'baiaram',
-            'baluta',
-            'bancu',
-            'nsimba'];
-        const texture = AssetsManager.getInstance().getTexture(names[id]);
 
+        const texture = AssetsManager.getInstance().getTextureById(id);
         if (texture) {
-            const sprite = new Sprite(texture);
-            sprite.anchor.set(0.5);
+            this.sprite = new Sprite(texture);
+            this.sprite.anchor.set(0.5);
+            this.sprite.position.set(0, SLOT_CONFIG.SYMBOL_SIZE / 2);
 
-            sprite.x = 0;
-            sprite.y = 80;
-
-            const targetSize = 140;
-            const scale = Math.min(targetSize / texture.width, targetSize / texture.height);
-            sprite.scale.set(scale);
-
-            this.addChild(sprite);
+            const scale = SLOT_CONFIG.SYMBOL_VISIBLE_SIZE / Math.max(texture.width, texture.height);
+            this.sprite.scale.set(scale);
+            this.addChild(this.sprite);
         }
     }
 }

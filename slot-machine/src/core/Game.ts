@@ -2,11 +2,9 @@ import { Application } from 'pixi.js';
 
 export class Game {
     private static instance: Game;
-    public app: Application;
+    public app!: Application;
 
-    private constructor() {
-        this.app = new Application();
-    }
+    private constructor() {}
 
     public static getInstance(): Game {
         if (!Game.instance) Game.instance = new Game();
@@ -14,6 +12,7 @@ export class Game {
     }
 
     public async init(containerId: string): Promise<void> {
+        this.app = new Application();
         await this.app.init({
             backgroundColor: 0x1a1a1a,
             width: 1280,
@@ -23,6 +22,6 @@ export class Game {
         });
 
         const container = document.getElementById(containerId);
-        if (container) container.appendChild(this.app.canvas);
+        container?.appendChild(this.app.canvas);
     }
 }

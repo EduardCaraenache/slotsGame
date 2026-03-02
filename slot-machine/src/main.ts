@@ -1,88 +1,73 @@
-import { Container, Graphics, Text, Rectangle } from 'pixi.js';
+import { Container, Text, Graphics } from 'pixi.js';
 import { Game } from './core/Game';
-import { AssetsManager } from './managers/AssetsManager';
 import { SlotModel } from './models/SlotModel';
 import { ReelView } from './views/ReelView';
+import { AssetsManager } from './managers/AssetsManager';
+import { SLOT_CONFIG } from './config/Constants';
 
 async function bootstrap() {
     const game = Game.getInstance();
     await game.init('game-container');
     await AssetsManager.getInstance().loadAssets();
 
-    const slotModel = new SlotModel();
+    const model = new SlotModel();
     const reelsLayer = new Container();
     const uiLayer = new Container();
 
-    const totalWidth = 5 * 180;
+    const totalWidth = SLOT_CONFIG.REEL_COUNT * SLOT_CONFIG.REEL_WIDTH;
     const startX = (game.app.screen.width - totalWidth) / 2;
-    const startY = 100;
-    const totalHeight = 160 * 3;
 
-    const slotFrame = new Graphics()
-        .roundRect(startX, startY, totalWidth, totalHeight, 15)
-        .fill({ color: 0x111111 })
-        .stroke({ color: 0xffffff, width: 2 });
+    reelsLayer.position.set(startX + SLOT_CONFIG.GAME_X_OFFSET, SLOT_CONFIG.GAME_Y_START);
 
-    reelsLayer.x = startX + 90;
-    reelsLayer.y = startY;
+    const frame = new Graphics()
+        .roundRect(startX, SLOT_CONFIG.GAME_Y_START, totalWidth, SLOT_CONFIG.SYMBOL_SIZE * 3, 15)
+        .fill({ color: SLOT_CONFIG.FRAME_COLOR, alpha: 0.9 })
+        .stroke({ color: SLOT_CONFIG.FRAME_BORDER_COLOR, width: 5 });
 
-    game.app.stage.addChild(slotFrame, reelsLayer, uiLayer);
+    const reels = model.grid.map((col, i) => new ReelView(col, i));
+    reels.forEach(r => reelsLayer.addChild(r));
 
-    const reels = slotModel.grid.map((col, i) => {
-        const reel = new ReelView(col, i);
-        reelsLayer.addChild(reel);
-        return reel;
-    });
+    const balanceTxt = new Text({ text: `Credits: ${model.balance}`, style: { fill: 0xffffff } });
+    const spinBtn = createButton("SPIN", game.app.screen.width / 2 - 90, 600);
+    uiLayer.addChild(balanceTxt, spinBtn);
 
-    const balanceTxt = new Text({ text: `Credits: ${slotModel.balance}`, style: { fill: 0xffffff, fontSize: 24 } });
-    balanceTxt.position.set(20, 20);
+    let spinning = false;
 
-    const winTxt = new Text({ text: 'WIN!', style: { fill: 0xffff00, fontSize: 60, fontWeight: 'bold' } });
-    winTxt.position.set(550, 250);
-    winTxt.visible = false;
-    uiLayer.addChild(balanceTxt, winTxt);
-
-    const btn = new Container();
-    const bg = new Graphics().roundRect(0, 0, 180, 70, 15).fill(0xffcc00);
-    const btnText = new Text({ text: 'SPIN', style: { fill: 0x000000, fontSize: 30, fontWeight: 'bold' } });
-
-    btnText.anchor.set(0.5); btnText.position.set(90, 35);
-    btn.addChild(bg, btnText);
-    btn.position.set(550, 600);
-    btn.eventMode = 'static';
-    btn.cursor = 'pointer';
-    btn.hitArea = new Rectangle(0, 0, 180, 70);
-
-    let isSpinning = false;
-
-    btn.on('pointerdown', async () => {
-        if (isSpinning) {
+    spinBtn.on('pointerdown', async () => {
+        if (spinning) {
             reels.forEach(r => r.stop());
             return;
         }
 
-        isSpinning = true;
-        btnText.text = "STOP";
-        winTxt.visible = false;
-        slotModel.balance -= 10;
-        balanceTxt.text = `Credits: ${slotModel.balance}`;
+        spinning = true;
+        (spinBtn.children[1] as Text).text = "STOP";
+        model.balance -= 10;
+        balanceTxt.text = `Credits: ${model.balance}`;
 
-        const reelResults = await Promise.all(reels.map((r, i) => r.spin(i * 150)));
+        const results = await Promise.all(reels.map((r, i) => r.spin(i * SLOT_CONFIG.STOP_DELAY)));
 
-        slotModel.setFinalGrid(reelResults);
+        model.updateGridFromView(results);
+        model.calculateResult();
 
-        const win = slotModel.calculateWin();
-        if (win.isWin) {
-            winTxt.text = `WIN: ${win.prize}`;
-            winTxt.visible = true;
-        }
-
-        btnText.text = "SPIN";
-        balanceTxt.text = `Credits: ${slotModel.balance}`;
-        isSpinning = false;
+        balanceTxt.text = `Credits: ${model.balance}`;
+        (spinBtn.children[1] as Text).text = "SPIN";
+        spinning = false;
     });
 
-    uiLayer.addChild(btn);
+    game.app.stage.addChild(frame, reelsLayer, uiLayer);
+}
+
+function createButton(label: string, x: number, y: number): Container {
+    const btn = new Container();
+    const bg = new Graphics().roundRect(0, 0, 180, 60, 10).fill(SLOT_CONFIG.BUTTON_COLOR);
+    const txt = new Text({ text: label, style: { fontWeight: 'bold' } });
+    txt.anchor.set(0.5);
+    txt.position.set(90, 30);
+    btn.addChild(bg, txt);
+    btn.position.set(x, y);
+    btn.eventMode = 'static';
+    btn.cursor = 'pointer';
+    return btn;
 }
 
 bootstrap();
