@@ -1,0 +1,10 @@
+export const SLOT_CONFIG = {
+    REEL_COUNT: 5,
+    ROW_COUNT: 3,
+    SYMBOL_SIZE: 160,
+    SYMBOL_VISIBLE_SIZE: 140,
+    REEL_WIDTH: 180,
+    SPIN_SPEED: 40,
+    FRICTION: 0.94,
+    STOP_DELAY: 150
+};
