@@ -1,5 +1,5 @@
 import {Application} from 'pixi.js';
-import {SLOT_CONFIG} from "../config/Constants.ts";
+import {SLOT_CONFIG} from "../utils/GlobalConstants.ts";
 
 export class Game {
     private static instance: Game;

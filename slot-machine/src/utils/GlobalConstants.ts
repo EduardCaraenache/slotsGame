@@ -33,8 +33,11 @@ export const SLOT_CONFIG = {
     BACKGROUND_COLOR: '#1a1a1a',
     FRAME_COLOR: 'black',
     FRAME_BORDER_COLOR: 'orange',
-    BUTTON_COLOR: 'orange',
+    SPIN_BUTTON_COLOR: 'orange',
+    BET_BUTTON_COLOR: 'green',
     BALANCE_COLOR: 'green',
+    BUTTON_TEXT_COLOR: 'black',
+    TEXT_GOLD: '#ffcc00',
 
     //Styles
     BOLD_FONT: 'bold',
@@ -42,6 +45,14 @@ export const SLOT_CONFIG = {
     //Text constants
     BALANCE_STRING: 'Balance',
     SPIN_STRING: 'SPIN',
+    BET_STRING: 'BET',
     STOP_STRING: 'STOP',
 
+    BET_OPTIONS: [10, 20, 50, 100, 200, 500],
+    DEFAULT_BET_INDEX: 0,
+
+    BUTTON_WIDTH: 200,
+    BUTTON_HEIGHT: 70,
+    BUTTON_SPACING: 40,
+    Y_POSITION: 620
 };

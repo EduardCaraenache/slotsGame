@@ -1,5 +1,5 @@
 import {Assets, Texture} from 'pixi.js';
-import {SLOT_CONFIG} from '../config/Constants';
+import {SLOT_CONFIG} from '../utils/GlobalConstants.ts';
 
 export class AssetsManager {
     private static instance: AssetsManager;

@@ -1,6 +1,6 @@
 import {BlurFilter, Container, Sprite} from 'pixi.js';
 import {AssetsManager} from '../managers/AssetsManager';
-import {SLOT_CONFIG} from '../config/Constants';
+import {SLOT_CONFIG} from '../utils/GlobalConstants.ts';
 
 export class SymbolView extends Container {
     public symbolId: number = 0;
@@ -15,8 +15,7 @@ export class SymbolView extends Container {
         this.render(id);
     }
 
-    public setBlur(speed: number): void
-    {
+    public setBlur(speed: number): void {
         this.blurFilter.strengthY = speed * 0.15;
     }
 
