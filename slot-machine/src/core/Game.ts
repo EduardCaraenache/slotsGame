@@ -1,10 +1,12 @@
-import { Application } from 'pixi.js';
+import {Application} from 'pixi.js';
+import {SLOT_CONFIG} from "../config/Constants.ts";
 
 export class Game {
     private static instance: Game;
     public app!: Application;
 
-    private constructor() {}
+    private constructor() {
+    }
 
     public static getInstance(): Game {
         if (!Game.instance) Game.instance = new Game();
@@ -14,7 +16,7 @@ export class Game {
     public async init(containerId: string): Promise<void> {
         this.app = new Application();
         await this.app.init({
-            backgroundColor: 0x1a1a1a,
+            backgroundColor: SLOT_CONFIG.BACKGROUND_COLOR,
             width: 1280,
             height: 720,
             resolution: window.devicePixelRatio || 1,

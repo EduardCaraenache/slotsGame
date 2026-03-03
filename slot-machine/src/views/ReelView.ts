@@ -1,12 +1,12 @@
-import { Container, Graphics, Ticker } from 'pixi.js';
-import { SymbolView } from './SymbolView';
-import { SLOT_CONFIG } from '../config/Constants';
+import {Container, Graphics, Ticker} from 'pixi.js';
+import {SymbolView} from './SymbolView';
+import {SLOT_CONFIG} from '../config/Constants';
 
 export class ReelView extends Container {
     private symbols: SymbolView[] = [];
     private isSpinning: boolean = false;
     private speed: number = 0;
-    private stopTimer: any;
+    private currentFriction: number = SLOT_CONFIG.FRICTION;
 
     constructor(initialData: number[], index: number) {
         super();
@@ -33,40 +33,71 @@ export class ReelView extends Container {
         this.mask = mask;
     }
 
-    private update(ticker: Ticker): void {
+    private update(ticker: Ticker) {
         if (!this.isSpinning && this.speed <= 0) return;
 
         this.symbols.forEach(symbol => {
             symbol.y += this.speed * ticker.deltaTime;
+
+            symbol.setBlur(this.speed);
+
             if (symbol.y >= SLOT_CONFIG.SYMBOL_SIZE * 4) {
                 symbol.y -= 5 * SLOT_CONFIG.SYMBOL_SIZE;
                 symbol.render(Math.floor(Math.random() * SLOT_CONFIG.ASSET_KEYS.length));
             }
         });
 
-        if (!this.isSpinning && this.speed > 0) {
-            this.speed *= SLOT_CONFIG.FRICTION;
-            if (this.speed < 1) {
-                this.speed = 0;
-                this.alignSymbols();
+        if (!this.isSpinning) {
+            this.speed *= this.currentFriction;
+
+            if (this.speed < 3)
+            {
+                this.applySmoothSnap(ticker.deltaTime);
             }
         }
     }
 
-    private alignSymbols(): void {
-        this.symbols.sort((a, b) => a.y - b.y);
-        this.symbols.forEach((s, i) => s.y = (i - 1) * SLOT_CONFIG.SYMBOL_SIZE);
+    private applySmoothSnap(dt: number)
+    {
+        let allInPlace = true;
+
+        const sorted = [...this.symbols].sort((a, b) => a.y - b.y);
+
+        sorted.forEach((symbol, index) =>
+        {
+            const targetY = (index - 1) * SLOT_CONFIG.SYMBOL_SIZE;
+            const distance = targetY - symbol.y;
+
+            if (Math.abs(distance) > 0.1)
+            {
+                symbol.y += distance * 0.2 * dt;
+                allInPlace = false;
+            }
+            else
+            {
+                symbol.y = targetY;
+            }
+        });
+
+        if (allInPlace)
+        {
+            this.speed = 0;
+            this.symbols.forEach(s => s.setBlur(0));
+        }
     }
 
     public async spin(delay: number): Promise<number[]> {
+        this.currentFriction = SLOT_CONFIG.FRICTION;
         return new Promise(resolve => {
             setTimeout(() => {
                 this.isSpinning = true;
                 this.speed = SLOT_CONFIG.SPIN_SPEED;
-                this.stopTimer = setTimeout(() => this.stop(), 2000);
+
+                // Oprire automată
+                setTimeout(() => this.stop(), 2000);
 
                 const checkInterval = setInterval(() => {
-                    if (this.speed <= 0 && !this.isSpinning) {
+                    if (this.speed === 0 && !this.isSpinning) {
                         clearInterval(checkInterval);
                         resolve(this.getVisibleIds());
                     }
@@ -77,7 +108,7 @@ export class ReelView extends Container {
 
     public stop(): void {
         this.isSpinning = false;
-        if (this.stopTimer) clearTimeout(this.stopTimer);
+        this.currentFriction = SLOT_CONFIG.QUICK_STOP_FRICTION;
     }
 
     private getVisibleIds(): number[] {

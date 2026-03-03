@@ -1,11 +1,12 @@
-import { Assets, Texture } from 'pixi.js';
-import { SLOT_CONFIG } from '../config/Constants';
+import {Assets, Texture} from 'pixi.js';
+import {SLOT_CONFIG} from '../config/Constants';
 
 export class AssetsManager {
     private static instance: AssetsManager;
     private textures: Map<string, Texture> = new Map();
 
-    private constructor() {}
+    private constructor() {
+    }
 
     public static getInstance(): AssetsManager {
         if (!AssetsManager.instance) AssetsManager.instance = new AssetsManager();

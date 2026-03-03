@@ -1,14 +1,23 @@
-import { Container, Sprite } from 'pixi.js';
-import { AssetsManager } from '../managers/AssetsManager';
-import { SLOT_CONFIG } from '../config/Constants';
+import {BlurFilter, Container, Sprite} from 'pixi.js';
+import {AssetsManager} from '../managers/AssetsManager';
+import {SLOT_CONFIG} from '../config/Constants';
 
 export class SymbolView extends Container {
     public symbolId: number = 0;
     private sprite: Sprite | null = null;
+    private blurFilter: BlurFilter = new BlurFilter();
 
     constructor(id: number) {
         super();
+        this.blurFilter.strengthX = 0;
+        this.blurFilter.strengthY = 0;
+        this.filters = [this.blurFilter];
         this.render(id);
+    }
+
+    public setBlur(speed: number): void
+    {
+        this.blurFilter.strengthY = speed * 0.15;
     }
 
     public render(id: number): void {

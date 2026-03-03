@@ -12,21 +12,36 @@ export const SLOT_CONFIG = {
 
     // Viteza de rotație (pixeli pe frame)
     SPIN_SPEED: 40,
-    // Coeficient de stop (0.94 = oprire lină)
-    FRICTION: 0.94,
+    // Coeficient de stop (0.96 = oprire lină)
+    FRICTION: 0.96,
+    // Coeficient de oprire rapida (0.85 = franarea agresiva)
+    QUICK_STOP_FRICTION: 0.85,
+    // Efectul de bounce
+    BOUNCE_STRENGTH: 0.5,
     // Pauza între oprirea coloanelor (efectul de cascadă)
     STOP_DELAY: 150,
 
     // Asset-urile (Asset IDs)
-    ASSET_KEYS: ['alhamlawi', 'baiaram', 'baluta', 'bancu', 'nsimba'],
+    ASSET_KEYS: ['alhamlawi', 'baiaram', 'baluta', 'bancu', 'cicaldau', 'isenko', 'nsimba', 'rus', 'screciu'],
 
     // Ajustare pentru centrarea simbolurilor (anchor 0.5)
     GAME_X_OFFSET: 90,
     // Coordonata Y de unde începe zona de joc
     GAME_Y_START: 100,
 
-    // Culori și Stiluri
-    FRAME_COLOR: 0x111111,
-    FRAME_BORDER_COLOR: 0x444444,
-    BUTTON_COLOR: 'gold'
+    // Colors
+    BACKGROUND_COLOR: '#1a1a1a',
+    FRAME_COLOR: 'black',
+    FRAME_BORDER_COLOR: 'orange',
+    BUTTON_COLOR: 'orange',
+    BALANCE_COLOR: 'green',
+
+    //Styles
+    BOLD_FONT: 'bold',
+
+    //Text constants
+    BALANCE_STRING: 'Balance',
+    SPIN_STRING: 'SPIN',
+    STOP_STRING: 'STOP',
+
 };

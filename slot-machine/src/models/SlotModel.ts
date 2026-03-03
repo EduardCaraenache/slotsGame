@@ -1,4 +1,4 @@
-import { SLOT_CONFIG } from '../config/Constants';
+import {SLOT_CONFIG} from '../config/Constants';
 
 export class SlotModel {
     public grid: number[][] = [];
@@ -9,8 +9,8 @@ export class SlotModel {
     }
 
     private resetGrid(): void {
-        this.grid = Array.from({ length: SLOT_CONFIG.REEL_COUNT }, () =>
-            Array.from({ length: SLOT_CONFIG.ROW_COUNT }, () =>
+        this.grid = Array.from({length: SLOT_CONFIG.REEL_COUNT}, () =>
+            Array.from({length: SLOT_CONFIG.ROW_COUNT}, () =>
                 Math.floor(Math.random() * SLOT_CONFIG.ASSET_KEYS.length))
         );
     }
@@ -24,6 +24,6 @@ export class SlotModel {
         const isWin = middleRow.every(val => val === middleRow[0]);
         const prize = isWin ? 100 : 0;
         this.balance += prize;
-        return { isWin, prize };
+        return {isWin, prize};
     }
 }
