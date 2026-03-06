@@ -30,7 +30,7 @@ export const COMMON_CONSTANTS = {
     GAME_Y_START: 100,
 
     // Colors
-    BACKGROUND_COLOR: '#1a1a1a',
+    BACKGROUND_COLOR: '#1A1A1A',
     FRAME_COLOR: '#000000',
     FRAME_BORDER_COLOR: '#FFA500',
     RED_COLOR: '#FF0000',
@@ -40,12 +40,9 @@ export const COMMON_CONSTANTS = {
     BET_BUTTON_COLOR: '#00FF00',
     BALANCE_COLOR: '#00FF00',
     BUTTON_TEXT_COLOR: '#000000',
-    TEXT_GOLD: '#ffcc00',
+    TEXT_GOLD: '#FFCC00',
     INSUFFICIENT_FUNDS_COLOR: '#FF3333',
     WIN_MESSAGE_COLOR: '#4A3200',
-
-    //Styles
-    BOLD_FONT: 'bold',
 
     //Text constants
     BALANCE_TEXT: 'Balance',
@@ -53,7 +50,7 @@ export const COMMON_CONSTANTS = {
     BET_TEXT: 'BET',
     STOP_TEXT: 'STOP',
     INSUFFICIENT_FUNDS_TEXT: 'INSUFFICIENT FUNDS!',
-    WIN_TEXT: 'WIN TEXT',
+    WIN_TEXT: 'WIN',
 
     BET_OPTIONS: [80, 100, 120, 160, 200],
     DEFAULT_BET_INDEX: 0,
@@ -63,3 +60,26 @@ export const COMMON_CONSTANTS = {
     BUTTON_SPACING: 40,
     Y_POSITION: 620
 };
+
+export const PAYLINES = [
+    [1, 1, 1, 1, 1], // 1. Orizontală mijloc
+    [0, 0, 0, 0, 0], // 2. Orizontală sus
+    [2, 2, 2, 2, 2], // 3. Orizontală jos
+    [0, 1, 2, 1, 0], // 4. V (sus-jos-sus)
+    [2, 1, 0, 1, 2], // 5. V inversat (jos-sus-jos)
+    [0, 0, 1, 2, 2], // 6. Scară în jos
+    [2, 2, 1, 0, 0], // 7. Scară în sus
+    [1, 0, 0, 0, 1], // 8. Trapez sus
+    [1, 2, 2, 2, 1], // 9. Trapez jos
+    [1, 0, 1, 2, 1], // 10. Zig-zag rar
+    [1, 2, 1, 0, 1], // 11. Zig-zag rar inversat
+    [0, 1, 0, 1, 0], // 12. Zig-zag des sus
+    [2, 1, 2, 1, 2], // 13. Zig-zag des jos
+    [0, 1, 1, 1, 0], // 14. Boltă sus
+    [2, 1, 1, 1, 2], // 15. Boltă jos
+    [0, 0, 2, 0, 0], // 16. Salt jos (coloana 3)
+    [2, 2, 0, 2, 2], // 17. Salt sus (coloana 3)
+    [1, 1, 0, 1, 1], // 18. Salt mic sus
+    [1, 1, 2, 1, 1], // 19. Salt mic jos
+    [0, 2, 0, 2, 0]  // 20. Zig-zag extrem
+];

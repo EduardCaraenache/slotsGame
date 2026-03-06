@@ -3,7 +3,7 @@ import { Game } from './core/Game';
 import { SlotModel } from './models/SlotModel';
 import { ReelView } from './views/ReelView';
 import { AssetsManager } from './managers/AssetsManager';
-import { COMMON_CONSTANTS } from './utils/GlobalConstants.ts';
+import {COMMON_CONSTANTS, PAYLINES} from './utils/GlobalConstants.ts';
 import { StyleFactory } from "./utils/StyleFactory.ts";
 
 let isSpinning = false;
@@ -141,13 +141,22 @@ async function handleAction(
     );
 
     model.updateGridFromView(results);
-    const win = model.calculateResult();
+    const result = model.calculateResult();
 
-    if (win.isWin) {
-        showWinMessage(win.prize, app, uiLayer);
-        reels.forEach(r => r.highlightWin());
-        const startVal = model.balance - win.prize;
-        await animateBalance(balanceTxt, startVal, model.balance);
+    if (result.isWin) {
+        showWinMessage(result.prize, app, uiLayer);
+
+        result.winningLines.forEach(win => {
+            const lineCoords = PAYLINES[win.lineIndex];
+            for (let col = 0; col < win.count; col++) {
+                reels[col].highlightWin(lineCoords[col]);
+            }
+        });
+
+        const oldBalance = model.balance - result.prize;
+        const newBalance = model.balance;
+
+        await animateBalance(balanceTxt, oldBalance, newBalance);
     }
 
     isSpinning = false;
@@ -188,14 +197,22 @@ function createBetButton(value: string, x: number, y: number, width: number, isS
 
     const valTxt = new Text({
         text: value,
-        style: { ...StyleFactory.getButtonStyle(), fontSize: 28, fontWeight: 'bold' }
+        style: {
+            ...StyleFactory.getButtonStyle(),
+            fontSize: 28,
+            fontWeight: 'bold'
+        }
     });
     valTxt.anchor.set(0.5);
     valTxt.position.set(width / 2, COMMON_CONSTANTS.BUTTON_HEIGHT / 2 - 10);
 
     const statusTxt = new Text({
         text: COMMON_CONSTANTS.SPIN_TEXT,
-        style: { ...StyleFactory.getButtonStyle(), fontSize: 14, fontWeight: 'normal' }
+        style: {
+            ...StyleFactory.getButtonStyle(),
+            fontSize: 14,
+            fontWeight: 'normal'
+        }
     });
     statusTxt.anchor.set(0.5);
     statusTxt.position.set(width / 2, COMMON_CONSTANTS.BUTTON_HEIGHT / 2 + 15);
@@ -291,7 +308,7 @@ function showInsufficientFunds(app: Application, container: Container) {
         if (lifeTime >= maxLife || toast.alpha <= 0) {
             app.ticker.remove(animationTicker);
             container.removeChild(toast);
-            toast.destroy({ children: true });
+            toast.destroy({children: true});
         }
     };
 

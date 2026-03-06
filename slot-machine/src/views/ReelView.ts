@@ -40,16 +40,36 @@ export class ReelView extends Container {
         this.currentFriction = COMMON_CONSTANTS.QUICK_STOP_FRICTION;
     }
 
-    public getMiddleSymbol(): SymbolView {
-        const sorted = [...this.symbols].sort((a, b) => a.y - b.y);
-        return sorted[2];
+    public highlightWin(row: number) {
+        const sortedSymbols = [...this.symbols].sort((a, b) => a.y - b.y);
+
+        const targetSymbol = sortedSymbols[row + 1];
+
+        if (targetSymbol) {
+            this.playHighlightAnimation(targetSymbol);
+        }
     }
 
-    public highlightWin() {
-        const target = this.getMiddleSymbol();
-        target.scale.set(1.2);
-        setTimeout(() => target.scale.set(1.0), 500);
+    private playHighlightAnimation(symbol: SymbolView) {
+        let elapsed = 0;
+        const originalScale = 1;
+        const maxScale = 1.15;
+
+        const pulse = (ticker: Ticker) => {
+            elapsed += 0.1 * ticker.deltaTime;
+
+            const scale = originalScale + Math.sin(elapsed * 2) * (maxScale - originalScale);
+            symbol.scale.set(scale);
+
+            if (elapsed > 10) {
+                symbol.scale.set(originalScale);
+                Ticker.shared.remove(pulse);
+            }
+        };
+
+        Ticker.shared.add(pulse);
     }
+
 
     private getVisibleIds(): number[] {
         const sorted = [...this.symbols].sort((a, b) => a.y - b.y);
