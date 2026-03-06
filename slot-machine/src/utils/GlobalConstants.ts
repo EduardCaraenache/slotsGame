@@ -1,4 +1,4 @@
-export const SLOT_CONFIG = {
+export const COMMON_CONSTANTS = {
     // Dimensiuni slot machine
     REEL_COUNT: 5,
     ROW_COUNT: 3,
@@ -31,25 +31,29 @@ export const SLOT_CONFIG = {
 
     // Colors
     BACKGROUND_COLOR: '#1a1a1a',
-    FRAME_COLOR: 'black',
-    FRAME_BORDER_COLOR: 'orange',
+    FRAME_COLOR: '#000000',
+    FRAME_BORDER_COLOR: '#FFA500',
     RED_COLOR: '#FF0000',
     WHITE_COLOR: '#FFFFFF',
     BLACK_COLOR: '#000000',
-    SPIN_BUTTON_COLOR: 'orange',
-    BET_BUTTON_COLOR: 'green',
-    BALANCE_COLOR: 'green',
-    BUTTON_TEXT_COLOR: 'black',
+    SPIN_BUTTON_COLOR: '#FFAA00',
+    BET_BUTTON_COLOR: '#00FF00',
+    BALANCE_COLOR: '#00FF00',
+    BUTTON_TEXT_COLOR: '#000000',
     TEXT_GOLD: '#ffcc00',
+    INSUFFICIENT_FUNDS_COLOR: '#FF3333',
+    WIN_MESSAGE_COLOR: '#4A3200',
 
     //Styles
     BOLD_FONT: 'bold',
 
     //Text constants
-    BALANCE_STRING: 'Balance',
-    SPIN_STRING: 'SPIN',
-    BET_STRING: 'BET',
-    STOP_STRING: 'STOP',
+    BALANCE_TEXT: 'Balance',
+    SPIN_TEXT: 'SPIN',
+    BET_TEXT: 'BET',
+    STOP_TEXT: 'STOP',
+    INSUFFICIENT_FUNDS_TEXT: 'INSUFFICIENT FUNDS!',
+    WIN_TEXT: 'WIN TEXT',
 
     BET_OPTIONS: [80, 100, 120, 160, 200],
     DEFAULT_BET_INDEX: 0,

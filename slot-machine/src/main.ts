@@ -1,9 +1,9 @@
-import { Container, Text, Graphics, type Application } from 'pixi.js';
+import {Container, Text, Graphics, type Application, type Ticker} from 'pixi.js';
 import { Game } from './core/Game';
 import { SlotModel } from './models/SlotModel';
 import { ReelView } from './views/ReelView';
 import { AssetsManager } from './managers/AssetsManager';
-import { SLOT_CONFIG } from './utils/GlobalConstants.ts';
+import { COMMON_CONSTANTS } from './utils/GlobalConstants.ts';
 import { StyleFactory } from "./utils/StyleFactory.ts";
 
 let isSpinning = false;
@@ -19,21 +19,21 @@ async function bootstrap() {
 
     const centerX = game.app.screen.width / 2;
 
-    const totalWidth = SLOT_CONFIG.REEL_COUNT * SLOT_CONFIG.REEL_WIDTH;
+    const totalWidth = COMMON_CONSTANTS.REEL_COUNT * COMMON_CONSTANTS.REEL_WIDTH;
     const startX = (game.app.screen.width - totalWidth) / 2;
-    reelsLayer.position.set(startX + SLOT_CONFIG.GAME_X_OFFSET, SLOT_CONFIG.GAME_Y_START);
+    reelsLayer.position.set(startX + COMMON_CONSTANTS.GAME_X_OFFSET, COMMON_CONSTANTS.GAME_Y_START);
 
     const frame = new Graphics()
-        .roundRect(startX, SLOT_CONFIG.GAME_Y_START, totalWidth, SLOT_CONFIG.SYMBOL_SIZE * 3, 15)
-        .fill({color: SLOT_CONFIG.FRAME_COLOR, alpha: 0.9})
-        .stroke({color: SLOT_CONFIG.FRAME_BORDER_COLOR, width: 5});
+        .roundRect(startX, COMMON_CONSTANTS.GAME_Y_START, totalWidth, COMMON_CONSTANTS.SYMBOL_SIZE * 3, 15)
+        .fill({color: COMMON_CONSTANTS.FRAME_COLOR, alpha: 0.9})
+        .stroke({color: COMMON_CONSTANTS.FRAME_BORDER_COLOR, width: 5});
 
     const reels = model.grid.map((col, i) => new ReelView(col, i));
     reels.forEach(r => reelsLayer.addChild(r));
 
     const margin = 30;
     const balanceTxt = new Text({
-        text: `${SLOT_CONFIG.BALANCE_STRING}: ${model.balance}`,
+        text: `${COMMON_CONSTANTS.BALANCE_TEXT}: ${model.balance}`,
         style: StyleFactory.getBalanceStyle()
     });
     balanceTxt.anchor.set(0, 1);
@@ -42,22 +42,22 @@ async function bootstrap() {
     uiLayer.addChild(balanceTxt);
 
     const betButtons: Container[] = [];
-    const betValues = SLOT_CONFIG.BET_OPTIONS;
-    const betBtnWidth = 110;
+    const betValues = COMMON_CONSTANTS.BET_OPTIONS;
+    const betButtonWidth = 110;
     const betSpacing = 15;
-    const totalBetAreaWidth = (betBtnWidth * betValues.length) + (betSpacing * (betValues.length - 1));
+    const totalBetAreaWidth = (betButtonWidth * betValues.length) + (betSpacing * (betValues.length - 1));
     const betStartX = centerX - (totalBetAreaWidth / 2);
 
     betValues.forEach((value, index) => {
-        const bBtn = createBetButton(
+        const betButton = createBetButton(
             value.toString(),
-            betStartX + index * (betBtnWidth + betSpacing),
-            SLOT_CONFIG.Y_POSITION,
-            betBtnWidth,
+            betStartX + index * (betButtonWidth + betSpacing),
+            COMMON_CONSTANTS.Y_POSITION,
+            betButtonWidth,
             model.currentBet === value
         );
 
-        bBtn.on('pointerdown', () => {
+        betButton.on('pointerdown', () => {
             if (isSpinning) {
                 reels.forEach(r => r.stop());
                 return;
@@ -66,20 +66,22 @@ async function bootstrap() {
             model.currentBet = value;
 
             if (!model.canAffordSpin()) {
-                const bg = bBtn.children[0] as Graphics;
-                bg.tint = SLOT_CONFIG.RED_COLOR;
-                setTimeout(() => bg.tint = SLOT_CONFIG.WHITE_COLOR, 200);
+                const bg = betButton.children[0] as Graphics;
+                bg.tint = COMMON_CONSTANTS.RED_COLOR;
+                setTimeout(() => bg.tint = COMMON_CONSTANTS.WHITE_COLOR, 200);
 
-                updateButtonsUI(betButtons, betValues, model.currentBet, betBtnWidth, "SPIN");
+                showInsufficientFunds(game.app, uiLayer);
+
+                updateButtonsUI(betButtons, betValues, model.currentBet, betButtonWidth, COMMON_CONSTANTS.SPIN_TEXT);
                 return;
             }
 
-            updateButtonsUI(betButtons, betValues, model.currentBet, betBtnWidth, "STOP");
-            handleAction(model, reels, balanceTxt, betButtons, betValues, betBtnWidth, uiLayer, game.app);
+            updateButtonsUI(betButtons, betValues, model.currentBet, betButtonWidth, COMMON_CONSTANTS.STOP_TEXT);
+            handleAction(model, reels, balanceTxt, betButtons, betValues, betButtonWidth, uiLayer, game.app);
         });
 
-        uiLayer.addChild(bBtn);
-        betButtons.push(bBtn);
+        uiLayer.addChild(betButton);
+        betButtons.push(betButton);
     });
 
     window.addEventListener('keydown', (event: KeyboardEvent) => {
@@ -90,22 +92,22 @@ async function bootstrap() {
                 reels.forEach(r => r.stop());
             } else {
                 if (model.canAffordSpin()) {
-                    updateButtonsUI(betButtons, betValues, model.currentBet, betBtnWidth, "STOP");
-                    handleAction(model, reels, balanceTxt, betButtons, betValues, betBtnWidth, uiLayer, game.app);
+                    updateButtonsUI(betButtons, betValues, model.currentBet, betButtonWidth, COMMON_CONSTANTS.STOP_TEXT);
+                    handleAction(model, reels, balanceTxt, betButtons, betValues, betButtonWidth, uiLayer, game.app);
                 } else {
                     const currentIndex = betValues.indexOf(model.currentBet);
-                    const activeBtn = betButtons[currentIndex];
+                    const activeButton = betButtons[currentIndex];
 
-                    if (activeBtn) {
-                        const bg = activeBtn.children[0] as Graphics;
+                    if (activeButton) {
+                        const bg = activeButton.children[0] as Graphics;
 
-                        bg.tint = SLOT_CONFIG.RED_COLOR;
+                        bg.tint = COMMON_CONSTANTS.RED_COLOR;
                         setTimeout(() => {
-                            bg.tint = SLOT_CONFIG.WHITE_COLOR;
+                            bg.tint = COMMON_CONSTANTS.WHITE_COLOR;
                         }, 200);
                     }
 
-                    console.log("Space: Fonduri insuficiente pentru miza curentă.");
+                    showInsufficientFunds(game.app, uiLayer);
                 }
             }
         }
@@ -123,7 +125,7 @@ async function handleAction(
     balanceTxt: Text,
     betButtons: Container[],
     betValues: number[],
-    btnWidth: number,
+    buttonWidth: number,
     uiLayer: Container,
     app: Application
 ) {
@@ -132,10 +134,10 @@ async function handleAction(
     isSpinning = true;
 
     model.balance -= model.currentBet;
-    balanceTxt.text = `${SLOT_CONFIG.BALANCE_STRING}: ${model.balance}`;
+    balanceTxt.text = `${COMMON_CONSTANTS.BALANCE_TEXT}: ${model.balance}`;
 
     const results = await Promise.all(
-        reels.map((r, i) => r.spin(i * SLOT_CONFIG.STOP_DELAY))
+        reels.map((r, i) => r.spin(i * COMMON_CONSTANTS.STOP_DELAY))
     );
 
     model.updateGridFromView(results);
@@ -150,8 +152,8 @@ async function handleAction(
 
     isSpinning = false;
 
-    updateButtonsUI(betButtons, betValues, model.currentBet, btnWidth, "SPIN");
-    balanceTxt.text = `${SLOT_CONFIG.BALANCE_STRING}: ${model.balance}`;
+    updateButtonsUI(betButtons, betValues, model.currentBet, buttonWidth, COMMON_CONSTANTS.SPIN_TEXT);
+    balanceTxt.text = `${COMMON_CONSTANTS.BALANCE_TEXT}: ${model.balance}`;
 }
 
 /**
@@ -164,11 +166,13 @@ function updateButtonsUI(buttons: Container[], values: number[], currentBet: num
         const isSelected = values[i] === currentBet;
 
         bg.clear()
-            .roundRect(0, 0, width, SLOT_CONFIG.BUTTON_HEIGHT, 15)
-            .fill(isSelected ? 0xFFAA00 : SLOT_CONFIG.BET_BUTTON_COLOR);
+            .roundRect(0, 0, width, COMMON_CONSTANTS.BUTTON_HEIGHT, 15)
+            .fill(isSelected ?
+                COMMON_CONSTANTS.SPIN_BUTTON_COLOR :
+                COMMON_CONSTANTS.BET_BUTTON_COLOR);
 
         statusTxt.text = stateText;
-        statusTxt.style.fill = stateText === "STOP" ? SLOT_CONFIG.BLACK_COLOR : SLOT_CONFIG.WHITE_COLOR;
+        statusTxt.style.fill = stateText === COMMON_CONSTANTS.STOP_TEXT ? COMMON_CONSTANTS.BLACK_COLOR : COMMON_CONSTANTS.WHITE_COLOR;
     });
 }
 
@@ -176,35 +180,35 @@ function updateButtonsUI(buttons: Container[], values: number[], currentBet: num
  * Creare buton de BET cu text dublu
  */
 function createBetButton(value: string, x: number, y: number, width: number, isSelected: boolean): Container {
-    const btn = new Container();
+    const button = new Container();
 
     const bg = new Graphics()
-        .roundRect(0, 0, width, SLOT_CONFIG.BUTTON_HEIGHT, 15)
-        .fill(isSelected ? 0xFFAA00 : SLOT_CONFIG.BET_BUTTON_COLOR);
+        .roundRect(0, 0, width, COMMON_CONSTANTS.BUTTON_HEIGHT, 15)
+        .fill(isSelected ? COMMON_CONSTANTS.SPIN_BUTTON_COLOR : COMMON_CONSTANTS.BET_BUTTON_COLOR);
 
     const valTxt = new Text({
         text: value,
         style: { ...StyleFactory.getButtonStyle(), fontSize: 28, fontWeight: 'bold' }
     });
     valTxt.anchor.set(0.5);
-    valTxt.position.set(width / 2, SLOT_CONFIG.BUTTON_HEIGHT / 2 - 10);
+    valTxt.position.set(width / 2, COMMON_CONSTANTS.BUTTON_HEIGHT / 2 - 10);
 
     const statusTxt = new Text({
-        text: "SPIN",
+        text: COMMON_CONSTANTS.SPIN_TEXT,
         style: { ...StyleFactory.getButtonStyle(), fontSize: 14, fontWeight: 'normal' }
     });
     statusTxt.anchor.set(0.5);
-    statusTxt.position.set(width / 2, SLOT_CONFIG.BUTTON_HEIGHT / 2 + 15);
+    statusTxt.position.set(width / 2, COMMON_CONSTANTS.BUTTON_HEIGHT / 2 + 15);
 
-    btn.addChild(bg, valTxt, statusTxt);
-    btn.position.set(x, y);
-    btn.eventMode = 'static';
-    btn.cursor = 'pointer';
+    button.addChild(bg, valTxt, statusTxt);
+    button.position.set(x, y);
+    button.eventMode = 'static';
+    button.cursor = 'pointer';
 
-    btn.on('pointerover', () => btn.alpha = 0.8);
-    btn.on('pointerout', () => btn.alpha = 1);
+    button.on('pointerover', () => button.alpha = 0.8);
+    button.on('pointerout', () => button.alpha = 1);
 
-    return btn;
+    return button;
 }
 
 /**
@@ -218,7 +222,7 @@ async function animateBalance(textElement: Text, start: number, end: number) {
             const elapsed = now - startTime;
             const progress = Math.min(elapsed / duration, 1);
             const current = Math.floor(start + (end - start) * progress);
-            textElement.text = `Credits: ${current}`;
+            textElement.text = `${COMMON_CONSTANTS.BALANCE_TEXT}: ${current}`;
             if (progress < 1) requestAnimationFrame(update);
             else resolve();
         };
@@ -231,7 +235,7 @@ async function animateBalance(textElement: Text, start: number, end: number) {
  */
 function showWinMessage(amount: number, app: Application, container: Container) {
     const winPopup = new Text({
-        text: `YOU WIN\n${amount}`,
+        text: `${COMMON_CONSTANTS.WIN_TEXT}\n${amount}`,
         style: StyleFactory.getWinMessageStyle()
     });
     winPopup.anchor.set(0.5);
@@ -248,6 +252,50 @@ function showWinMessage(amount: number, app: Application, container: Container) 
     };
     animateIn();
     setTimeout(() => container.removeChild(winPopup), 2500);
+}
+
+function showInsufficientFunds(app: Application, container: Container) {
+    const toast = new Container();
+
+    const message = new Text({
+        text: COMMON_CONSTANTS.INSUFFICIENT_FUNDS_TEXT,
+        style: StyleFactory.getInsufficientFunds()
+    });
+
+    message.anchor.set(0.5);
+    toast.addChild(message);
+
+    toast.x = app.screen.width / 2;
+    toast.y = app.screen.height / 2;
+    toast.alpha = 0;
+    toast.scale.set(0.5);
+
+    container.addChild(toast);
+
+    let lifeTime = 0;
+    const maxLife = 100;
+
+    const animationTicker = (ticker: Ticker) => {
+        lifeTime += ticker.deltaTime;
+
+        if (lifeTime < 15) {
+            toast.alpha += 0.1 * ticker.deltaTime;
+            toast.scale.set(toast.scale.x + 0.05 * ticker.deltaTime);
+        }
+        toast.y -= ticker.deltaTime;
+
+        if (lifeTime > 80) {
+            toast.alpha -= 0.1 * ticker.deltaTime;
+        }
+
+        if (lifeTime >= maxLife || toast.alpha <= 0) {
+            app.ticker.remove(animationTicker);
+            container.removeChild(toast);
+            toast.destroy({ children: true });
+        }
+    };
+
+    app.ticker.add(animationTicker);
 }
 
 bootstrap();

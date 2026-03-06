@@ -1,25 +1,25 @@
-import {SLOT_CONFIG} from '../utils/GlobalConstants.ts';
+import {COMMON_CONSTANTS} from '../utils/GlobalConstants.ts';
 
 export class SlotModel {
     public grid: number[][] = [];
     public balance: number = 1000;
-    public currentBet: number = SLOT_CONFIG.BET_OPTIONS[SLOT_CONFIG.DEFAULT_BET_INDEX];
-    private betIndex: number = SLOT_CONFIG.DEFAULT_BET_INDEX;
+    public currentBet: number = COMMON_CONSTANTS.BET_OPTIONS[COMMON_CONSTANTS.DEFAULT_BET_INDEX];
+    private betIndex: number = COMMON_CONSTANTS.DEFAULT_BET_INDEX;
 
     constructor() {
         this.resetGrid();
     }
 
     private resetGrid(): void {
-        this.grid = Array.from({length: SLOT_CONFIG.REEL_COUNT}, () =>
-            Array.from({length: SLOT_CONFIG.ROW_COUNT}, () =>
-                Math.floor(Math.random() * SLOT_CONFIG.ASSET_KEYS.length))
+        this.grid = Array.from({length: COMMON_CONSTANTS.REEL_COUNT}, () =>
+            Array.from({length: COMMON_CONSTANTS.ROW_COUNT}, () =>
+                Math.floor(Math.random() * COMMON_CONSTANTS.ASSET_KEYS.length))
         );
     }
 
     public changeBet(): void {
-        this.betIndex = (this.betIndex + 1) % SLOT_CONFIG.BET_OPTIONS.length;
-        this.currentBet = SLOT_CONFIG.BET_OPTIONS[this.betIndex];
+        this.betIndex = (this.betIndex + 1) % COMMON_CONSTANTS.BET_OPTIONS.length;
+        this.currentBet = COMMON_CONSTANTS.BET_OPTIONS[this.betIndex];
     }
 
     public updateGridFromView(newGrid: number[][]): void {
