@@ -7,6 +7,7 @@ export class ReelView extends Container {
     private isSpinning: boolean = false;
     private speed: number = 0;
     private currentFriction: number = SLOT_CONFIG.FRICTION;
+    private resolveSpin: ((results: number[]) => void) | null = null;
 
     constructor(initialData: number[], index: number) {
         super();
@@ -17,25 +18,24 @@ export class ReelView extends Container {
     }
 
     public async spin(delay: number): Promise<number[]> {
-        this.currentFriction = SLOT_CONFIG.FRICTION;
         return new Promise(resolve => {
+            this.resolveSpin = resolve;
+
             setTimeout(() => {
                 this.isSpinning = true;
                 this.speed = SLOT_CONFIG.SPIN_SPEED;
+                this.currentFriction = SLOT_CONFIG.FRICTION;
 
-                setTimeout(() => this.stop(), 2000);
-
-                const checkInterval = setInterval(() => {
-                    if (this.speed === 0 && !this.isSpinning) {
-                        clearInterval(checkInterval);
-                        resolve(this.getVisibleIds());
-                    }
-                }, 100);
+                setTimeout(() => {
+                    if (this.isSpinning) this.stop();
+                }, 2000);
             }, delay);
         });
     }
 
     public stop(): void {
+        if (!this.isSpinning) return;
+
         this.isSpinning = false;
         this.currentFriction = SLOT_CONFIG.QUICK_STOP_FRICTION;
     }
@@ -58,7 +58,6 @@ export class ReelView extends Container {
 
     private applySmoothSnap(dt: number) {
         let allInPlace = true;
-
         const sorted = [...this.symbols].sort((a, b) => a.y - b.y);
 
         sorted.forEach((symbol, index) => {
@@ -76,6 +75,11 @@ export class ReelView extends Container {
         if (allInPlace) {
             this.speed = 0;
             this.symbols.forEach(s => s.setBlur(0));
+
+            if (this.resolveSpin) {
+                this.resolveSpin(this.getVisibleIds());
+                this.resolveSpin = null;
+            }
         }
     }
 
@@ -101,7 +105,6 @@ export class ReelView extends Container {
 
         this.symbols.forEach(symbol => {
             symbol.y += this.speed * ticker.deltaTime;
-
             symbol.setBlur(this.speed);
 
             if (symbol.y >= SLOT_CONFIG.SYMBOL_SIZE * 4) {
