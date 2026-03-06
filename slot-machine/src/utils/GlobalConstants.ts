@@ -48,7 +48,7 @@ export const SLOT_CONFIG = {
     BET_STRING: 'BET',
     STOP_STRING: 'STOP',
 
-    BET_OPTIONS: [10, 20, 50, 100, 200, 500],
+    BET_OPTIONS: [80, 100, 120, 160, 200],
     DEFAULT_BET_INDEX: 0,
 
     BUTTON_WIDTH: 200,

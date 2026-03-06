@@ -23,7 +23,6 @@ export class ReelView extends Container {
                 this.isSpinning = true;
                 this.speed = SLOT_CONFIG.SPIN_SPEED;
 
-                // Oprire automată
                 setTimeout(() => this.stop(), 2000);
 
                 const checkInterval = setInterval(() => {
@@ -42,7 +41,6 @@ export class ReelView extends Container {
     }
 
     public getMiddleSymbol(): SymbolView {
-        // Rândul 1 este cel de sus, rândul 2 este mijlocul (index 2 în array-ul sortat)
         const sorted = [...this.symbols].sort((a, b) => a.y - b.y);
         return sorted[2];
     }

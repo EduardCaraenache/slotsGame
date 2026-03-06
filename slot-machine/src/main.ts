@@ -1,10 +1,12 @@
-import {Container, Text, Graphics, type Application} from 'pixi.js';
-import {Game} from './core/Game';
-import {SlotModel} from './models/SlotModel';
-import {ReelView} from './views/ReelView';
-import {AssetsManager} from './managers/AssetsManager';
-import {SLOT_CONFIG} from './utils/GlobalConstants.ts';
-import {StyleFactory} from "./utils/StyleFactory.ts";
+import { Container, Text, Graphics, type Application } from 'pixi.js';
+import { Game } from './core/Game';
+import { SlotModel } from './models/SlotModel';
+import { ReelView } from './views/ReelView';
+import { AssetsManager } from './managers/AssetsManager';
+import { SLOT_CONFIG } from './utils/GlobalConstants.ts';
+import { StyleFactory } from "./utils/StyleFactory.ts";
+
+let spinning = false;
 
 async function bootstrap() {
     const game = Game.getInstance();
@@ -51,75 +53,102 @@ async function bootstrap() {
         spinBtnX,
         SLOT_CONFIG.Y_POSITION,
         SLOT_CONFIG.SPIN_BUTTON_COLOR);
-    uiLayer.addChild(balanceTxt, spinBtn);
-
-    let spinning = false;
 
     const betBtn = createButton(
         `${SLOT_CONFIG.BET_STRING}: ${model.currentBet}`,
         betBtnX,
         SLOT_CONFIG.Y_POSITION,
         SLOT_CONFIG.BET_BUTTON_COLOR);
-    uiLayer.addChild(betBtn);
+
+    uiLayer.addChild(balanceTxt, spinBtn, betBtn);
 
     const betTxt = betBtn.children[1] as Text;
 
     betBtn.on('pointerdown', () => {
         if (spinning) return;
-
         model.changeBet();
         betTxt.text = `${SLOT_CONFIG.BET_STRING}: ${model.currentBet}`;
     });
 
-    spinBtn.on('pointerdown', async () => {
-        if (spinning) {
-            reels.forEach(r => r.stop());
-            return;
+    const onActionTriggered = () => {
+        handleSpin(model, reels, balanceTxt, spinBtn, uiLayer, game.app);
+    };
+
+    spinBtn.on('pointerdown', onActionTriggered);
+
+    window.addEventListener('keydown', (event: KeyboardEvent) => {
+        if (event.code === 'Space') {
+            event.preventDefault();
+            onActionTriggered();
         }
-
-        if (!model.canAffordSpin()) {
-            console.log("Fonduri insuficiente pentru miza de:", model.currentBet);
-            return;
-        }
-
-        spinning = true;
-        (spinBtn.children[1] as Text).text = SLOT_CONFIG.STOP_STRING;
-
-        //============== LOGURI DEBUG ===================
-        console.log("--- START SPIN ---");
-        console.log("Balanță inițială:", model.balance);
-        console.log("Miza selectată (Bet):", model.currentBet);
-
-        model.balance -= model.currentBet;
-
-        console.log("Balanță după scădere miza:", model.balance);
-        //============================
-
-        balanceTxt.text = `${SLOT_CONFIG.BALANCE_STRING}: ${model.balance}`;
-
-        const results =
-            await Promise.all(reels
-                .map((r, i) =>
-                    r.spin(i * SLOT_CONFIG.STOP_DELAY)));
-
-        model.updateGridFromView(results);
-        const win = model.calculateResult();
-
-        if (win.isWin) {
-            showWinMessage(win.prize, game.app, uiLayer);
-            reels.forEach(r => r.highlightWin());
-
-            const startBalance = model.balance - win.prize;
-            await animateBalance(balanceTxt, startBalance, model.balance);
-        }
-
-        balanceTxt.text = `${SLOT_CONFIG.BALANCE_STRING}: ${model.balance}`;
-        (spinBtn.children[1] as Text).text = SLOT_CONFIG.SPIN_STRING;
-        spinning = false;
     });
 
     game.app.stage.addChild(frame, reelsLayer, uiLayer);
+}
 
+async function handleSpin(
+    model: SlotModel,
+    reels: ReelView[],
+    balanceTxt: Text,
+    spinBtn: Container,
+    uiLayer: Container,
+    app: Application
+) {
+    const btnText = spinBtn.children[1] as Text;
+
+    if (spinning) {
+        reels.forEach(r => r.stop());
+        return;
+    }
+
+    if (!model.canAffordSpin()) {
+        console.log("Fonduri insuficiente pentru miza de: ", model.currentBet);
+        return;
+    }
+
+    spinning = true;
+    btnText.text = SLOT_CONFIG.STOP_STRING;
+
+    model.balance -= model.currentBet;
+    balanceTxt.text = `${SLOT_CONFIG.BALANCE_STRING}: ${model.balance}`;
+
+    const results = await Promise.all(
+        reels.map((r, i) => r.spin(i * SLOT_CONFIG.STOP_DELAY))
+    );
+
+    model.updateGridFromView(results);
+    const win = model.calculateResult();
+
+    if (win.isWin) {
+        showWinMessage(win.prize, app, uiLayer);
+        reels.forEach(r => r.highlightWin());
+
+        const startBalance = model.balance - win.prize;
+        await animateBalance(balanceTxt, startBalance, model.balance);
+    }
+
+    balanceTxt.text = `${SLOT_CONFIG.BALANCE_STRING}: ${model.balance}`;
+    btnText.text = SLOT_CONFIG.SPIN_STRING;
+    spinning = false;
+}
+
+async function animateBalance(textElement: Text, start: number, end: number) {
+    const duration = 1000;
+    const startTime = performance.now();
+
+    const update = (now: number) => {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        const current = Math.floor(start + (end - start) * progress);
+        textElement.text = `Credits: ${current}`;
+
+        if (progress < 1) {
+            requestAnimationFrame(update);
+        }
+    };
+
+    requestAnimationFrame(update);
 }
 
 function createButton(label: string, x: number, y: number, color: string): Container {
@@ -144,25 +173,6 @@ function createButton(label: string, x: number, y: number, color: string): Conta
     return btn;
 }
 
-async function animateBalance(textElement: Text, start: number, end: number) {
-    const duration = 1000;
-    const startTime = performance.now();
-
-    const update = (now: number) => {
-        const elapsed = now - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-
-        const current = Math.floor(start + (end - start) * progress);
-        textElement.text = `Credits: ${current}`;
-
-        if (progress < 1) {
-            requestAnimationFrame(update);
-        }
-    };
-
-    requestAnimationFrame(update);
-}
-
 function showWinMessage(amount: number, app: Application, container: Container) {
     const winPopup = new Text({
         text: `YOU WIN\n${amount}`,
@@ -185,7 +195,6 @@ function showWinMessage(amount: number, app: Application, container: Container) 
     };
     animateIn();
 
-    // Îl ștergem după 2.5 secunde
     setTimeout(() => {
         container.removeChild(winPopup);
     }, 2500);
