@@ -1,12 +1,13 @@
 import {Container, Text, Graphics, type Application, type Ticker} from 'pixi.js';
-import { Game } from './core/Game';
-import { SlotModel } from './models/SlotModel';
-import { ReelView } from './views/ReelView';
-import { AssetsManager } from './managers/AssetsManager';
+import {Game} from './core/Game';
+import {SlotModel} from './models/SlotModel';
+import {ReelView} from './views/ReelView';
+import {AssetsManager} from './managers/AssetsManager';
 import {COMMON_CONSTANTS, PAYLINES} from './utils/GlobalConstants.ts';
-import { StyleFactory } from "./utils/StyleFactory.ts";
+import {StyleFactory} from "./utils/StyleFactory.ts";
+import {GameState} from "./core/GameState.ts";
 
-let isSpinning = false;
+let currentState: GameState = GameState.IDLE;
 
 async function bootstrap() {
     const game = Game.getInstance();
@@ -18,7 +19,6 @@ async function bootstrap() {
     const uiLayer = new Container();
 
     const centerX = game.app.screen.width / 2;
-
     const totalWidth = COMMON_CONSTANTS.REEL_COUNT * COMMON_CONSTANTS.REEL_WIDTH;
     const startX = (game.app.screen.width - totalWidth) / 2;
     reelsLayer.position.set(startX + COMMON_CONSTANTS.GAME_X_OFFSET, COMMON_CONSTANTS.GAME_Y_START);
@@ -58,10 +58,13 @@ async function bootstrap() {
         );
 
         betButton.on('pointerdown', () => {
-            if (isSpinning) {
+            if (currentState === GameState.SPINNING) {
+                currentState = GameState.STOPPING;
                 reels.forEach(r => r.stop());
                 return;
             }
+
+            if (currentState !== GameState.IDLE) return;
 
             model.currentBet = value;
 
@@ -69,14 +72,11 @@ async function bootstrap() {
                 const bg = betButton.children[0] as Graphics;
                 bg.tint = COMMON_CONSTANTS.RED_COLOR;
                 setTimeout(() => bg.tint = COMMON_CONSTANTS.WHITE_COLOR, 200);
-
                 showInsufficientFunds(game.app, uiLayer);
-
                 updateButtonsUI(betButtons, betValues, model.currentBet, betButtonWidth, COMMON_CONSTANTS.SPIN_TEXT);
                 return;
             }
 
-            updateButtonsUI(betButtons, betValues, model.currentBet, betButtonWidth, COMMON_CONSTANTS.STOP_TEXT);
             handleAction(model, reels, balanceTxt, betButtons, betValues, betButtonWidth, uiLayer, game.app);
         });
 
@@ -87,26 +87,13 @@ async function bootstrap() {
     window.addEventListener('keydown', (event: KeyboardEvent) => {
         if (event.code === 'Space') {
             event.preventDefault();
-
-            if (isSpinning) {
+            if (currentState === GameState.SPINNING) {
+                currentState = GameState.STOPPING;
                 reels.forEach(r => r.stop());
-            } else {
+            } else if (currentState === GameState.IDLE) {
                 if (model.canAffordSpin()) {
-                    updateButtonsUI(betButtons, betValues, model.currentBet, betButtonWidth, COMMON_CONSTANTS.STOP_TEXT);
                     handleAction(model, reels, balanceTxt, betButtons, betValues, betButtonWidth, uiLayer, game.app);
                 } else {
-                    const currentIndex = betValues.indexOf(model.currentBet);
-                    const activeButton = betButtons[currentIndex];
-
-                    if (activeButton) {
-                        const bg = activeButton.children[0] as Graphics;
-
-                        bg.tint = COMMON_CONSTANTS.RED_COLOR;
-                        setTimeout(() => {
-                            bg.tint = COMMON_CONSTANTS.WHITE_COLOR;
-                        }, 200);
-                    }
-
                     showInsufficientFunds(game.app, uiLayer);
                 }
             }
@@ -116,53 +103,75 @@ async function bootstrap() {
     game.app.stage.addChild(frame, reelsLayer, uiLayer);
 }
 
-/**
- * Gestionează ciclul de Spin
- */
 async function handleAction(
-    model: SlotModel,
-    reels: ReelView[],
-    balanceTxt: Text,
-    betButtons: Container[],
-    betValues: number[],
-    buttonWidth: number,
-    uiLayer: Container,
-    app: Application
+    model: SlotModel, reels: ReelView[], balanceTxt: Text,
+    betButtons: Container[], betValues: number[], buttonWidth: number,
+    uiLayer: Container, app: Application
 ) {
-    if (isSpinning) return;
+    if (currentState !== GameState.IDLE) return;
 
-    isSpinning = true;
+    currentState = GameState.SPINNING;
+    updateButtonsUI(betButtons, betValues, model.currentBet, buttonWidth, COMMON_CONSTANTS.STOP_TEXT);
 
     model.balance -= model.currentBet;
     balanceTxt.text = `${COMMON_CONSTANTS.BALANCE_TEXT}: ${model.balance}`;
 
-    const results = await Promise.all(
-        reels.map((r, i) => r.spin(i * COMMON_CONSTANTS.STOP_DELAY))
-    );
+    const reelPromises = reels.map((r, i) => r.spin(i * 100));
+    const finalResults: number[][] = [];
 
-    model.updateGridFromView(results);
-    const result = model.calculateResult();
+    for (let i = 0; i < reels.length; i++) {
+        let waitTime = 100;
 
-    if (result.isWin) {
-        showWinMessage(result.prize, app, uiLayer);
-
-        result.winningLines.forEach(win => {
-            const lineCoords = PAYLINES[win.lineIndex];
-            for (let col = 0; col < win.count; col++) {
-                reels[col].highlightWin(lineCoords[col]);
+        if (i >= 2 && (currentState as GameState) !== GameState.STOPPING) {
+            if (checkPotentialWin(finalResults)) {
+                waitTime = 2000;
+                console.log("Anticipation on reel " + (i + 1));
             }
-        });
+        }
 
-        const oldBalance = model.balance - result.prize;
-        const newBalance = model.balance;
+        if ((currentState as GameState) !== GameState.STOPPING) {
+            await new Promise(res => setTimeout(res, waitTime));
+        }
 
-        await animateBalance(balanceTxt, oldBalance, newBalance);
+        reels[i].stop();
+        const reelResult = await reelPromises[i];
+        finalResults.push(reelResult);
     }
 
-    isSpinning = false;
+    try {
+        currentState = GameState.WIN_CELEBRATION;
+        model.updateGridFromView(finalResults);
+        const result = model.calculateResult();
 
-    updateButtonsUI(betButtons, betValues, model.currentBet, buttonWidth, COMMON_CONSTANTS.SPIN_TEXT);
-    balanceTxt.text = `${COMMON_CONSTANTS.BALANCE_TEXT}: ${model.balance}`;
+        if (result.isWin) {
+            showWinMessage(result.prize, app, uiLayer);
+            result.winningLines.forEach(win => {
+                const lineCoords = PAYLINES[win.lineIndex];
+                for (let col = 0; col < win.count; col++) {
+                    reels[col].highlightWin(lineCoords[col]);
+                }
+            });
+            const oldBalance = model.balance - result.prize;
+            await animateBalance(balanceTxt, oldBalance, model.balance);
+        }
+    } catch (error) {
+        console.error("Error in while spinning: ", error);
+    } finally {
+        currentState = GameState.IDLE;
+        updateButtonsUI(betButtons, betValues, model.currentBet, buttonWidth, COMMON_CONSTANTS.SPIN_TEXT);
+        balanceTxt.text = `${COMMON_CONSTANTS.BALANCE_TEXT}: ${model.balance}`;
+    }
+}
+
+function checkPotentialWin(stoppedResults: number[][]): boolean {
+    if (stoppedResults.length < 2) return false;
+    return PAYLINES.some(line => {
+        const firstSymbol = stoppedResults[0][line[0]];
+        for (let col = 1; col < stoppedResults.length; col++) {
+            if (stoppedResults[col][line[col]] !== firstSymbol) return false;
+        }
+        return true;
+    });
 }
 
 /**
@@ -234,14 +243,23 @@ function createBetButton(value: string, x: number, y: number, width: number, isS
 async function animateBalance(textElement: Text, start: number, end: number) {
     const duration = 1000;
     const startTime = performance.now();
+
+    if (start === end) return Promise.resolve();
+
     return new Promise<void>((resolve) => {
         const update = (now: number) => {
             const elapsed = now - startTime;
             const progress = Math.min(elapsed / duration, 1);
             const current = Math.floor(start + (end - start) * progress);
+
             textElement.text = `${COMMON_CONSTANTS.BALANCE_TEXT}: ${current}`;
-            if (progress < 1) requestAnimationFrame(update);
-            else resolve();
+
+            if (progress < 1) {
+                requestAnimationFrame(update);
+            } else {
+                textElement.text = `${COMMON_CONSTANTS.BALANCE_TEXT}: ${end}`;
+                resolve();
+            }
         };
         requestAnimationFrame(update);
     });

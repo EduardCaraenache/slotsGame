@@ -1,6 +1,6 @@
-import {Container, Graphics, Ticker} from 'pixi.js';
-import {SymbolView} from './SymbolView';
-import {COMMON_CONSTANTS} from '../utils/GlobalConstants.ts';
+import { Container, Graphics, Ticker } from 'pixi.js';
+import { SymbolView } from './SymbolView';
+import { COMMON_CONSTANTS } from '../utils/GlobalConstants.ts';
 
 export class ReelView extends Container {
     private symbols: SymbolView[] = [];
@@ -17,6 +17,10 @@ export class ReelView extends Container {
         Ticker.shared.add(this.update, this);
     }
 
+    /**
+     * Pornește învârtirea.
+     * Returnează un Promise care se rezolvă DOAR când rola s-a oprit și s-a aliniat.
+     */
     public async spin(delay: number): Promise<number[]> {
         return new Promise(resolve => {
             this.resolveSpin = resolve;
@@ -26,20 +30,18 @@ export class ReelView extends Container {
                 this.speed = COMMON_CONSTANTS.SPIN_SPEED;
                 this.currentFriction = COMMON_CONSTANTS.FRICTION;
 
-                setTimeout(() => {
-                    if (this.isSpinning) this.stop();
-                }, 2000);
             }, delay);
         });
     }
 
+    /**
+     * Oprește învârtirea și forțează fricțiunea pentru aliniere.
+     */
     public stop(): void {
         if (!this.isSpinning) return;
-
         this.isSpinning = false;
         this.currentFriction = COMMON_CONSTANTS.QUICK_STOP_FRICTION;
     }
-
     public highlightWin(row: number) {
         const sortedSymbols = [...this.symbols].sort((a, b) => a.y - b.y);
 
@@ -70,10 +72,26 @@ export class ReelView extends Container {
         Ticker.shared.add(pulse);
     }
 
+    private update(ticker: Ticker) {
+        if (!this.isSpinning && this.speed <= 0) return;
 
-    private getVisibleIds(): number[] {
-        const sorted = [...this.symbols].sort((a, b) => a.y - b.y);
-        return [sorted[1].symbolId, sorted[2].symbolId, sorted[3].symbolId];
+        this.symbols.forEach(symbol => {
+            symbol.y += this.speed * ticker.deltaTime;
+            symbol.setBlur(this.speed);
+
+            if (symbol.y >= COMMON_CONSTANTS.SYMBOL_SIZE * 4) {
+                symbol.y -= 5 * COMMON_CONSTANTS.SYMBOL_SIZE;
+                symbol.render(Math.floor(Math.random() * COMMON_CONSTANTS.ASSET_KEYS.length));
+            }
+        });
+
+        if (!this.isSpinning) {
+            this.speed *= this.currentFriction;
+
+            if (this.speed < 5) {
+                this.applySmoothSnap(ticker.deltaTime);
+            }
+        }
     }
 
     private applySmoothSnap(dt: number) {
@@ -85,7 +103,7 @@ export class ReelView extends Container {
             const distance = targetY - symbol.y;
 
             if (Math.abs(distance) > 0.1) {
-                symbol.y += distance * 0.2 * dt;
+                symbol.y += distance * 0.25 * dt;
                 allInPlace = false;
             } else {
                 symbol.y = targetY;
@@ -101,6 +119,11 @@ export class ReelView extends Container {
                 this.resolveSpin = null;
             }
         }
+    }
+
+    private getVisibleIds(): number[] {
+        const sorted = [...this.symbols].sort((a, b) => a.y - b.y);
+        return [sorted[1].symbolId, sorted[2].symbolId, sorted[3].symbolId];
     }
 
     private initSymbols(data: number[]): void {
@@ -119,27 +142,4 @@ export class ReelView extends Container {
         this.addChild(mask);
         this.mask = mask;
     }
-
-    private update(ticker: Ticker) {
-        if (!this.isSpinning && this.speed <= 0) return;
-
-        this.symbols.forEach(symbol => {
-            symbol.y += this.speed * ticker.deltaTime;
-            symbol.setBlur(this.speed);
-
-            if (symbol.y >= COMMON_CONSTANTS.SYMBOL_SIZE * 4) {
-                symbol.y -= 5 * COMMON_CONSTANTS.SYMBOL_SIZE;
-                symbol.render(Math.floor(Math.random() * COMMON_CONSTANTS.ASSET_KEYS.length));
-            }
-        });
-
-        if (!this.isSpinning) {
-            this.speed *= this.currentFriction;
-
-            if (this.speed < 3) {
-                this.applySmoothSnap(ticker.deltaTime);
-            }
-        }
-    }
-
 }
